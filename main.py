@@ -77,7 +77,8 @@ class Admin:
 			FilePtr = open(Admin.FileName, "rb") 
 			ProductsList = pickle.load(FilePtr)
 			FilePtr.close()
-			print(	"Product Name:",ProductsList[int(self.ProductId)][0],
+			print(	
+					"Product Name:",ProductsList[int(self.ProductId)][0],
 					"\nProduct Price:",ProductsList[int(self.ProductId)][1],
 					"\nProduct Quantity:",ProductsList[int(self.ProductId)][2]
 				)
@@ -98,7 +99,8 @@ class Admin:
 		with open(Admin.FileName, "rb") as FilePtr:
 			ProductsList = pickle.load(FilePtr)
 			FilePtr.close()
-			print(	"Product Name:",ProductsList[int(self.ProductId)][0],
+			print(	
+					"Product Name:",ProductsList[int(self.ProductId)][0],
 					"Product Price:",ProductsList[int(self.ProductId)][1],
 					"Product Quantity:",ProductsList[int(self.ProductId)][2]
 				)
@@ -159,8 +161,7 @@ class Guest:
 class Cart:
 	CartId = 0
 	NoOfProducts = 0
-	Products = []
-	Price = 0
+	Products = {}
 	Total = 0
 	def __init__():
 		pass
@@ -172,8 +173,9 @@ class Payment:
 		CardType
 		CardNo
 
-class Customer (Guest, Cart, Payment):
+class Customer (Cart, Payment):
 	ProductFileName = "ProductList.pickle"
+	TransectionFile = "TransectionsFile.pickle"
 	CustomerPass = None
 	CustomerId = None
 	CustomerLogin = None
@@ -181,29 +183,94 @@ class Customer (Guest, Cart, Payment):
 	def __init__(self):
 		Cart.CartId = CartId + 1
 		Cart.NoOfProducts = 0
-		Cart.Products = []
-		Cart.Price = 0
+		Cart.Products = {}
 		Cart.Total = 0
 
 	def BuyProducts(self):
-		pass
+		Customer.ViewCart(self)
+		print("\nProceed to Payment Press [Yes/No]: ")
+		op_task = input()
+		if(str(op_task) == "Yes" or str(op_task) == "yes"):
+			Customer.MakePayment(self)
+
+		if os.path.exists(self.TransectionFile):
+			FilePtr = open(self.TransectionFile, "rb") 
+			TransDetail = pickle.load(FilePtr)
+			FilePtr.close()
+		else:
+			print("Something Went Wrong!")
+
+		HighestId = sum(len(trans) for trans in TransDetail.values())
+		self.TransId = int(HighestId / 4) + 1
+		TransDetail[self.TransId] = Cart.Products
+
+		with open(self.TransectionFile,'wb') as FilePtr:
+			pickle.dump(TransDetail, FilePtr)
+			FilePtr.close()
+			print("Transection Successful!!")
+			print("Your have purchased these items:")
+			Customer.ViewCart(self)
+			print("Your items will be delivered with in 2 days!")
+
 	def MakePayment(self):
-		pass
-	def AddToCart(self, ProductId):
-		self.Products.append(ProductId)
-		print("Product", ProductId, "added into cart!")
+		print("Processing...")
 
-	def ViewCart(self):
-		for item in Cart.Products:
-			print(item)
+	def AddToCart(self, ProductId, Quantity):
+		if os.path.exists(self.ProductFileName):
+				FilePtr = open(self.ProductFileName, "rb") 
+				ProductList = pickle.load(FilePtr)
+				FilePtr.close()
+		else:
+			print("Something Went Wrong!")
+		if(int(ProductId) in ProductList):
+			ProductDetail =	str(Customer.CustomerId) + ", " + \
+							ProductList[int(ProductId)][0] + ", " + \
+							ProductList[int(ProductId)][1] + ", " + str(Quantity)
 
-	def DeleteFromCart(self, ProductId):
-		if(ProductId in self.Products):
-			del self.Products[0] 
-			print("Product", ProductId, "removed!")
+			self.Products[int(self.NoOfProducts)] = ProductDetail.split(',')
+			self.NoOfProducts += 1
+			self.Total += int(Quantity) * int(ProductList[int(ProductId)][1])
+			print("Product", ProductId, "added into cart!")
 		else:
 			print("Invalid Product Id!")
 
+	def ViewCart(self):
+		if(len(self.Products) > 0):
+			index = 1
+			for item in self.Products:
+				print(
+						str(index) + ". ",self.Products[item][1],"\t\t",
+						self.Products[item][2],"\t\t",self.Products[item][3]
+					)
+				index += 1
+			print("Total Products: ",self.NoOfProducts,"\tTotal Amount: ",self.Total)
+		else:
+			print("Cart is empty!")
+			
+
+	def DeleteFromCart(self, cartId, Quantity):
+		if(len(self.Products) >= int(cartId)):
+			cartId = int(cartId)-1
+			if(self.Products[cartId][3] == int(Quantity)):
+				self.NoOfProducts -= 1
+				self.Total -= int(Quantity) * self.Products[cartId][2]
+				del self.Products[cartId] 
+
+			else:
+				self.Total -= int(Quantity) * int(self.Products[cartId][2])
+				self.Products[cartId][3] = int(self.Products[cartId][3]) - int(Quantity)
+			print("Product", cartId, "removed!")
+		else:
+			print("Invalid Product Id!")
+
+	def ShowTrasections(self):
+		if os.path.exists(self.TransectionFile):
+			FilePtr = open(self.TransectionFile, "rb") 
+			TransDetail = pickle.load(FilePtr)
+			FilePtr.close()
+			print(TransDetail)
+		else:
+			print("Something Went Wrong!")
 
 
 class Login (Admin, Customer):
@@ -261,14 +328,22 @@ def main():
 	while(1):
 		start = input("\nDo you want to login?[Yes/No]: ")
 		if(start == "Yes" or start == "yes"):
-			want_login = input("Admin Login: Press 1 and Enter\nUser Login: Press 2 and Enter\nChoose Option: ")
+			want_login = input("\n1. Admin Login\t2. User Login\nChoose Option: ")
 			if(int(want_login) == 1):
 				adminObject = Login(1)
 				if(Admin.adminLogin == True):
 					print("Login Successfully!")
 					adminObject.ViewProducts()
 					while(1):
-						print("\n1. Add Products\n2. Modify Products\n3. Delete Products\n4. View Products\n5. Exit\nOperation: ")
+						space = ' '
+						space_count = 4
+						print(	
+								"\n1. Add Products" + space_count * space + \
+								"2. Modify Products"+ space_count * space + \
+								"3. Delete Products"+ space_count * space + \
+								"4. View Products"+ space_count * space + \
+								"5. Exit\nOperation: "
+							)
 						op_task = input()
 						if(str(op_task) == "1"):
 							adminObject.AddProducts()
@@ -294,19 +369,33 @@ def main():
 					print("Login Successfully!")
 					userObject.ViewProducts()
 					while(1):
-						print("\n1. Add Into Cart\n2. View Cart\n3. Delete From Card\n4. Buy Products\n5. View Products\n6. Exit\nOperation: ")
+						print(
+								"\n1. Add Into Cart" + space_count * space + \
+								"2. View Cart" + space_count * space + \
+								"3. Delete From Card" + space_count * space + \
+								"4. Buy Products" + space_count * space + \
+								"5. View Products" + space_count * space + \
+								"6. Show All Trasections" + space_count * space + \
+								"7. Exit\nOperation:" \
+								)
 						op_task = input()
 						if(str(op_task) == "1"):
-							userObject.AddToCart(input("Enter Product Id:"))
+							pid = input("Enter Product Id:")
+							Quantity = input("No of Piece:")
+							userObject.AddToCart(pid, Quantity)
 						elif(str(op_task) == "2"):
 							userObject.ViewCart()
 						elif(str(op_task) == "3"):
-							userObject.DeleteFromCart(input("Enter Product Id:"))
+							cid = input("Enter Product Cart Id:")
+							Quantity = input("No of Piece:")
+							userObject.DeleteFromCart(cid, Quantity)
 						elif(str(op_task) == "4"):
 							userObject.BuyProducts()
 						elif(str(op_task) == "5"):
 							userObject.ViewProducts()
 						elif(str(op_task) == "6"):
+							userObject.ViewProducts()
+						elif(str(op_task) == "7"):
 							Login.SetScreen(2)
 							exit(0)
 						else:
