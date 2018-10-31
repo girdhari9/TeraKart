@@ -4,12 +4,13 @@ import os
 import shelve
 
 class Admin:
-	FileName = "ProductList.pickle"
+	ProductFileName = "ProductList.pickle"
+	UserFileName = "UserList.pickle"
+	TransectionFile = "TransectionsFile.pickle"
 	adminId = None
 	adminLogin = None
 	ProductId = None
 	def __init__():
-		# self.
 		self.ProductName = None
 		self.ProductPrice = None
 		self.ProductPieces = None
@@ -27,8 +28,8 @@ class Admin:
 			print("OOPS!!! No Products are Available!")
 
 	def AddProducts(self):
-		if os.path.exists(Admin.FileName):
-			FilePtr = open(Admin.FileName,"rb") 
+		if os.path.exists(Admin.ProductFileName):
+			FilePtr = open(Admin.ProductFileName,"rb") 
 			ProductsList = pickle.load(FilePtr)
 			FilePtr.close()
 			print(ProductsList)
@@ -42,7 +43,7 @@ class Admin:
 						str(self.ProductPrice) + "," + str(self.ProductPieces) 
 		ProductsList[self.ProductId] = ProductDetail.split(',')
 
-		with open(Admin.FileName,'wb') as FilePtr:
+		with open(Admin.ProductFileName,'wb') as FilePtr:
 			pickle.dump(ProductsList, FilePtr)
 			FilePtr.close()
 			print("Product Added!")
@@ -50,8 +51,8 @@ class Admin:
 
 	def DeleteProducts(self,ProductId):
 		self.ProductId = ProductId
-		if os.path.exists(Admin.FileName):
-			FilePtr = open(Admin.FileName, "rb") 
+		if os.path.exists(Admin.ProductFileName):
+			FilePtr = open(Admin.ProductFileName, "rb") 
 			ProductsList = pickle.load(FilePtr)
 			FilePtr.close()
 			if(int(self.ProductId) in ProductsList):
@@ -63,7 +64,7 @@ class Admin:
 			else:
 				print("Invalid Product Id!")
 
-			with open(Admin.FileName, "wb") as FilePtr:
+			with open(Admin.ProductFileName, "wb") as FilePtr:
 				pickle.dump(ProductsList, FilePtr)
 				FilePtr.close()
 				print("Delete Product",int(self.ProductId), "Successfully!")
@@ -73,8 +74,8 @@ class Admin:
 
 	def ModifyProducts(self,ProductId):
 		self.ProductId = ProductId
-		if os.path.exists(Admin.FileName):
-			FilePtr = open(Admin.FileName, "rb") 
+		if os.path.exists(Admin.ProductFileName):
+			FilePtr = open(Admin.ProductFileName, "rb") 
 			ProductsList = pickle.load(FilePtr)
 			FilePtr.close()
 			print(	
@@ -92,11 +93,11 @@ class Admin:
 		else:
 			print("Invalid Input!")
 
-		with open(Admin.FileName,'wb') as FilePtr:
+		with open(Admin.ProductFileName,'wb') as FilePtr:
 			pickle.dump(ProductsList, FilePtr)
 			FilePtr.close()
 			print("Product Modified!")
-		with open(Admin.FileName, "rb") as FilePtr:
+		with open(Admin.ProductFileName, "rb") as FilePtr:
 			ProductsList = pickle.load(FilePtr)
 			FilePtr.close()
 			print(	
@@ -113,9 +114,41 @@ class Admin:
 			FilePtr = open(self.TransectionFile, "rb") 
 			TransDetail = pickle.load(FilePtr)
 			FilePtr.close()
-			print(TransDetail)
+			
 		else:
 			print("Something Went Wrong!")
+
+		if os.path.exists(self.UserFileName):
+			FilePtr = open(self.UserFileName, "rb") 
+			UserDetail = pickle.load(FilePtr)
+			FilePtr.close()
+			
+		else:
+			print("Something Went Wrong!")
+		size = sum(len(trans) for trans in TransDetail.values())
+		arr = [1] * size
+		
+		print("\nTransection Details: ")
+		for item in TransDetail:
+			flag = 0
+			index = 1
+			if arr[item]:
+				print("User Name: " + UserDetail[int(TransDetail[item][0])][0])
+			Total = 0
+			for i in TransDetail:
+				if TransDetail[item][0] == TransDetail[i][0] and arr[i]:
+					flag = 1
+					Total += int(TransDetail[i][2]) * int(TransDetail[i][3])
+					print("Order No.:",index)
+					print(
+						"Product Name: \t" + TransDetail[i][1] + "\n" \
+						"No of piece: \t" + TransDetail[i][3] + "\n" \
+						"Cost: \t\t" + TransDetail[i][2]
+					)
+					index += 1
+					arr[i] = 0
+			if flag:
+				print("Total Amount Paid: \t", Total)
 
 class Cart:
 	CartId = 0
@@ -340,7 +373,6 @@ class Login (Admin, Customer):
 				Admin.adminLogin = True
 				Login.SetScreen(0)
 			else:
-				Admin.adminLogin = False
 				print("Wrong Credential. Try Again!")
 
 		if(LoginAs == 2):	
@@ -451,7 +483,8 @@ def main():
 								"2. Modify Products"+ space_count * space + \
 								"3. Delete Products"+ space_count * space + \
 								"4. View Products"+ space_count * space + \
-								"5. Logout\nOperation: ", end = "", flush = True
+								"5. Confrim Delivery"+ space_count * space + \
+								"6. Logout\nOperation: ", end = "", flush = True
 							)
 						op_task = input()
 						if(str(op_task) == "1"):
@@ -463,6 +496,8 @@ def main():
 						elif(str(op_task) == "4"):
 							adminObject.ViewProducts()
 						elif(str(op_task) == "5"):
+							adminObject.ConfirmDelivery()
+						elif(str(op_task) == "6"):
 							Login.SetScreen(2)
 							exit(0)
 						else:
