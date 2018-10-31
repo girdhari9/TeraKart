@@ -1,9 +1,22 @@
 import pickle
-import pprint
 import os
-import shelve
 
-class Admin:
+class Cart:
+	CartId = 0
+	NoOfProducts = 0
+	Products = {}
+	Total = 0
+	def __init__():
+		pass
+
+class Payment:
+	def __init__():
+		CustId
+		CustName
+		CardType
+		CardNo
+
+class Admin (Cart):
 	ProductFileName = "ProductList.pickle"
 	UserFileName = "UserList.pickle"
 	TransectionFile = "TransectionsFile.pickle"
@@ -106,10 +119,21 @@ class Admin:
 					"Product Quantity:",ProductsList[int(self.ProductId)][2]
 				)
 		
-	def MarkShipment(self):
-		pass
+	def MakeShipment(self, Products):
+		if os.path.exists(self.ProductFileName):
+			FilePtr = open(self.ProductFileName, "rb") 
+			ProductDetail = pickle.load(FilePtr)
+			FilePtr.close()
 
-	def ConfirmDelivery(self, ):
+		for item in self.Products:
+			ProductDetail[int(self.Products[item][4])][2] = int(ProductDetail[int(self.Products[item][4])][2]) - int(self.Products[item][3])
+
+		if os.path.exists(self.ProductFileName):
+			FilePtr = open(self.ProductFileName, "wb") 
+			pickle.dump(ProductDetail, FilePtr)
+			FilePtr.close()
+
+	def ConfirmDelivery(self):
 		if os.path.exists(self.TransectionFile):
 			FilePtr = open(self.TransectionFile, "rb") 
 			TransDetail = pickle.load(FilePtr)
@@ -132,9 +156,9 @@ class Admin:
 		for item in TransDetail:
 			flag = 0
 			index = 1
+			Total = 0
 			if arr[item]:
 				print("User Name: " + UserDetail[int(TransDetail[item][0])][0])
-			Total = 0
 			for i in TransDetail:
 				if TransDetail[item][0] == TransDetail[i][0] and arr[i]:
 					flag = 1
@@ -149,21 +173,6 @@ class Admin:
 					arr[i] = 0
 			if flag:
 				print("Total Amount Paid: \t", Total)
-
-class Cart:
-	CartId = 0
-	NoOfProducts = 0
-	Products = {}
-	Total = 0
-	def __init__():
-		pass
-
-class Payment:
-	def __init__():
-		CustId
-		CustName
-		CardType
-		CardNo
 
 class Customer (Cart, Payment):
 	ProductFileName = "ProductList.pickle"
@@ -194,11 +203,13 @@ class Customer (Cart, Payment):
 
 		if(len(self.Products) > 0):
 			self.ViewCart()
+			Admin.MakeShipment(self,self.Products)
 			self.ProceedToPay(TransDetail)
 		else:
 			pid = input("Enter Product Id: ")
 			Quantity = input("No of Piece: ")
 			self.AddToCart(pid, Quantity)
+			Admin.MakeShipment(self,self.Products)
 			self.ProceedToPay(TransDetail)
 
 	def ProceedToPay(self, TransDetail):
@@ -209,16 +220,16 @@ class Customer (Cart, Payment):
 		elif(str(op_task) == "No" or str(op_task) == "no"):
 			self.ViewProducts()
 
-		for item in Cart.Products:
-			TransDetail[self.TransId] = self.Products[item]
+		for item in self.Products:
+			TransDetail[item] = self.Products[item] #Fixed
 
 		with open(self.TransectionFile,'wb') as FilePtr:
+			print(TransDetail)
 			pickle.dump(TransDetail, FilePtr)
 			FilePtr.close()
 			print("Transection Successful!!")
 			print("Your have purchased these items:")
-			Customer.ViewCart(self)
-
+			self.ViewCart()  # View Cart
 			self.EmptyCart() # Empty Cart
 			print("Your items will be delivered with in 2 days!") 
 
@@ -240,7 +251,8 @@ class Customer (Cart, Payment):
 		if(int(ProductId) in ProductList):
 			ProductDetail =	str(Customer.CustomerId) + "," + \
 							ProductList[int(ProductId)][0] + "," + \
-							ProductList[int(ProductId)][1] + "," + str(Quantity)
+							ProductList[int(ProductId)][1] + "," + \
+							str(Quantity) + "," + str(ProductId)
 
 			for item in self.Products:
 				if ProductList[int(ProductId)][0] == self.Products[item][1]:
@@ -255,10 +267,11 @@ class Customer (Cart, Payment):
 				if int(ProductList[int(ProductId)][2]) > int(Quantity):
 					HighestId = sum(len(prod) for prod in ProductList.values())
 					HID = sum(len(prod) for prod in self.Products.values())
-					HighestId = int(HighestId / 4) + int(HID / 4) + 1
-					print(ProductDetail)
-					self.Products[HighestId] = ProductDetail.split(',')
-					print(self.Products)
+					HighestId = int(HighestId / 4) + int(HID / 4) 
+					# if HighestId in self.Products:
+					# 	self.Products[HighestId].append(ProductDetail.split(',')) 
+					# else:
+					self.Products[HighestId] = ProductDetail.split(',') 
 				else:
 					print("Product is not Available or Quantity is high!")
 
@@ -288,8 +301,14 @@ class Customer (Cart, Payment):
 			
 
 	def DeleteFromCart(self, cartId, Quantity):
+		if os.path.exists(self.ProductFileName):
+			FilePtr = open(self.ProductFileName, "rb") 
+			ProductList = pickle.load(FilePtr)
+			FilePtr.close()
+		HighestId = sum(len(prod) for prod in ProductList.values())
+
 		if(len(self.Products) >= int(cartId)):
-			cartId = int(cartId)-1
+			cartId = int(cartId) + int(HighestId / 4) -1
 			if(self.Products[cartId][3] == int(Quantity)):
 				self.NoOfProducts -= 1
 				self.Total -= int(Quantity) * self.Products[cartId][2]
@@ -307,9 +326,23 @@ class Customer (Cart, Payment):
 			FilePtr = open(self.TransectionFile, "rb") 
 			TransDetail = pickle.load(FilePtr)
 			FilePtr.close()
-			print(TransDetail)
 		else:
 			print("Something Went Wrong!")
+
+		print("\nTransection Details: ")
+		index = 1
+		for item in TransDetail:
+			Total = 0
+			if TransDetail[item][0] == self.CustomerId:
+				Total += int(TransDetail[item][2]) * int(TransDetail[item][3])
+				print("Order No.:",index)
+				print(
+					"Product Name: \t" + TransDetail[item][1] + "\n" \
+					"No of piece: \t" + TransDetail[item][3] + "\n" \
+					"Cost: \t\t" + TransDetail[item][2]
+				)
+				index += 1
+			print("Total Amount Paid: \t", Total)				
 
 class Guest (Customer):
 	GuestId = 0
@@ -434,15 +467,22 @@ class operation:
 				if(str(op_task) == "1"):
 					pid = input("Enter Product Id: ").replace(" ","")
 					Quantity = input("No of Piece: ").replace(" ","")
-					userObject.AddToCart(pid, Quantity)
+					if pid.isdigit() and Quantity.isdigit():
+						userObject.AddToCart(pid, Quantity)
+					else:
+						print("Invalid Input!")
 				elif(str(op_task) == "2"):
 					userObject.ViewCart()
 				elif(str(op_task) == "3"):
 					userObject.EmptyCart()
 				elif(str(op_task) == "4"):
-					cid = input("Enter Product Cart Id: ")
-					Quantity = input("No of Piece: ")
-					userObject.DeleteFromCart(cid, Quantity)
+					cid = input("Enter Product Cart Id: ").replace(" ","")
+					Quantity = input("No of Piece: ").replace(" ","")
+					if cid.isdigit() and Quantity.isdigit():
+						userObject.DeleteFromCart(cid, Quantity)
+					else:
+						print("Invalid Input!")
+					
 				elif(str(op_task) == "5"):
 					userObject.BuyProducts()
 				elif(str(op_task) == "6"):
@@ -490,9 +530,9 @@ def main():
 						if(str(op_task) == "1"):
 							adminObject.AddProducts()
 						elif(str(op_task) == "2"):
-							adminObject.ModifyProducts(input("Enter Product Id:"))
+							adminObject.ModifyProducts(input("Enter Product Id:")).replace(" ","")
 						elif(str(op_task) == "3"):
-							adminObject.DeleteProducts(input("Enter Product Id:"))
+							adminObject.DeleteProducts(input("Enter Product Id:")).replace(" ","")
 						elif(str(op_task) == "4"):
 							adminObject.ViewProducts()
 						elif(str(op_task) == "5"):
