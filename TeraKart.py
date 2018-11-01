@@ -33,10 +33,11 @@ class Admin (Cart):
 			with open(Guest.ProductsListName,"rb") as FilePtr:
 				ShowProducts = pickle.load(FilePtr)
 				FilePtr.close()
-				print("Products:")
+				print("Products:\n")
+				print("S[.] Product Name\t\tPrice\t\t\tQuantity")
 				for item in ShowProducts:
-					print(str(item) + ".", ShowProducts[item][0],"\t\t",
-						ShowProducts[item][1],"\t\t", ShowProducts[item][2])
+					print("",str(item) + ".", ShowProducts[item][0].ljust(20) + "\tRs.",
+						(ShowProducts[item][1]).ljust(20), ShowProducts[item][2])
 		else:
 			print("OOPS!!! No Products are Available!")
 
@@ -45,12 +46,21 @@ class Admin (Cart):
 			FilePtr = open(Admin.ProductFileName,"rb") 
 			ProductsList = pickle.load(FilePtr)
 			FilePtr.close()
-			print(ProductsList)
+			# print(ProductsList)
 		HighestId = sum(len(products) for products in ProductsList.values())
 		self.ProductId = int(HighestId / 3) + 1
 		self.ProductName = input("Enter Product Name: ")
+		if self.ProductName.isdigit():
+			print("Invalid Input!")
+			return
 		self.ProductPrice = input("Enter Product Price: ")
+		if self.ProductPrice.isdigit() == False:
+			print("Invalid Input!")
+			return
 		self.ProductPieces = input("Enter Product Quantity Available: ")
+		if self.ProductPieces.isdigit() == False:
+			print("Invalid Input!")
+			return
 
 		ProductDetail =	str(self.ProductName) + "," + \
 						str(self.ProductPrice) + "," + str(self.ProductPieces) 
@@ -70,12 +80,13 @@ class Admin (Cart):
 			FilePtr.close()
 			if(int(self.ProductId) in ProductsList):
 				print(	"Product Name:",ProductsList[int(self.ProductId)][0],
-						"Product Price:",ProductsList[int(self.ProductId)][1],
-						"Product Quantity:",ProductsList[int(self.ProductId)][2]
+						"\nProduct Price:",ProductsList[int(self.ProductId)][1],
+						"\nProduct Quantity:",ProductsList[int(self.ProductId)][2]
 					)
 				del ProductsList[int(self.ProductId)]
 			else:
 				print("Invalid Product Id!")
+				return
 
 			with open(Admin.ProductFileName, "wb") as FilePtr:
 				pickle.dump(ProductsList, FilePtr)
@@ -91,13 +102,19 @@ class Admin (Cart):
 			FilePtr = open(Admin.ProductFileName, "rb") 
 			ProductsList = pickle.load(FilePtr)
 			FilePtr.close()
+		else:
+			print("Something went Wrong!")
+			return
+
+		if self.ProductId in ProductList:
 			print(	
 					"Product Name:",ProductsList[int(self.ProductId)][0],
 					"\nProduct Price:",ProductsList[int(self.ProductId)][1],
 					"\nProduct Quantity:",ProductsList[int(self.ProductId)][2]
 				)
 		else:
-			print("Something went Wrong!")
+			print("Invalid Product Id!")
+			return
 
 		if(int(self.ProductId) in ProductsList):
 			ProductsList[int(self.ProductId)][0] = input("Enter Product Name: ")
@@ -105,6 +122,7 @@ class Admin (Cart):
 			ProductsList[int(self.ProductId)][2] = input("Enter Product Quantity Available: ")
 		else:
 			print("Invalid Input!")
+			return
 
 		with open(Admin.ProductFileName,'wb') as FilePtr:
 			pickle.dump(ProductsList, FilePtr)
@@ -115,8 +133,8 @@ class Admin (Cart):
 			FilePtr.close()
 			print(	
 					"Product Name:",ProductsList[int(self.ProductId)][0],
-					"Product Price:",ProductsList[int(self.ProductId)][1],
-					"Product Quantity:",ProductsList[int(self.ProductId)][2]
+					"\nProduct Price:",ProductsList[int(self.ProductId)][1],
+					"\nProduct Quantity:",ProductsList[int(self.ProductId)][2]
 				)
 		
 	def MakeShipment(self, Products):
@@ -152,7 +170,7 @@ class Admin (Cart):
 		size = sum(len(trans) for trans in TransDetail.values())
 		arr = [1] * size
 		
-		print("\nTransection Details: ")
+		print("\nTransection Details: \n")
 		for item in TransDetail:
 			flag = 0
 			index = 1
@@ -172,7 +190,7 @@ class Admin (Cart):
 					index += 1
 					arr[i] = 0
 			if flag:
-				print("Total Amount Paid: \t", Total)
+				print("Total Amount Paid: \t", Total,"\n")
 
 class Customer (Cart, Payment):
 	ProductFileName = "ProductList.pickle"
@@ -207,7 +225,13 @@ class Customer (Cart, Payment):
 			self.ProceedToPay(TransDetail)
 		else:
 			pid = input("Enter Product Id: ")
+			if pid.isdigit() == False:
+				print("Invalid Input!")
+				return
 			Quantity = input("No of Piece: ")
+			if Quantity.isdigit() == False:
+				print("Invalid Input!")
+				return
 			self.AddToCart(pid, Quantity)
 			Admin.MakeShipment(self,self.Products)
 			self.ProceedToPay(TransDetail)
@@ -224,7 +248,7 @@ class Customer (Cart, Payment):
 			TransDetail[item] = self.Products[item] #Fixed
 
 		with open(self.TransectionFile,'wb') as FilePtr:
-			print(TransDetail)
+			# print(TransDetail)
 			pickle.dump(TransDetail, FilePtr)
 			FilePtr.close()
 			print("Transection Successful!!")
@@ -236,8 +260,17 @@ class Customer (Cart, Payment):
 	def MakePayment(self):
 		self.CustId = self.CustomerId
 		self.CardType = input("Enter card Type: ")
+		if self.CardType.isdigit():
+				print("Invalid Input!")
+				return
 		self.CardName = input("Enter Card Name: ")
+		if self.CardName.isdigit():
+				print("Invalid Input!")
+				return
 		self.CardNo = input("Enter Card No.: ")
+		if self.CardNo.isdigit() == False:
+				print("Invalid Input!")
+				return
 		print("Processing...")
 
 	def AddToCart(self, ProductId, Quantity):
@@ -301,25 +334,29 @@ class Customer (Cart, Payment):
 			
 
 	def DeleteFromCart(self, cartId, Quantity):
-		if os.path.exists(self.ProductFileName):
-			FilePtr = open(self.ProductFileName, "rb") 
-			ProductList = pickle.load(FilePtr)
-			FilePtr.close()
-		HighestId = sum(len(prod) for prod in ProductList.values())
+		if len(self.Products) > 0:
+			if os.path.exists(self.ProductFileName):
+				FilePtr = open(self.ProductFileName, "rb") 
+				ProductList = pickle.load(FilePtr)
+				FilePtr.close()
+			HighestId = sum(len(prod) for prod in ProductList.values())
 
-		if(len(self.Products) >= int(cartId)):
-			cartId = int(cartId) + int(HighestId / 4) -1
-			if(self.Products[cartId][3] == int(Quantity)):
-				self.NoOfProducts -= 1
-				self.Total -= int(Quantity) * self.Products[cartId][2]
-				del self.Products[cartId] 
+			if(len(self.Products) >= int(cartId)):
+				cartId = int(cartId) + int(HighestId / 4) -1
+				if(self.Products[cartId][3] == int(Quantity)):
+					self.NoOfProducts -= 1
+					self.Total -= int(Quantity) * self.Products[cartId][2]
+					del self.Products[cartId] 
 
+				else:
+					self.Total -= int(Quantity) * int(self.Products[cartId][2])
+					self.Products[cartId][3] = int(self.Products[cartId][3]) - int(Quantity)
+				print("Product", cartId, "removed!")
 			else:
-				self.Total -= int(Quantity) * int(self.Products[cartId][2])
-				self.Products[cartId][3] = int(self.Products[cartId][3]) - int(Quantity)
-			print("Product", cartId, "removed!")
+				print("Invalid Product Id!")
 		else:
-			print("Invalid Product Id!")
+			print("Cart is empty!")
+			self.ViewProducts()
 
 	def ShowTrasections(self):
 		if os.path.exists(self.TransectionFile):
@@ -357,10 +394,11 @@ class Guest (Customer):
 			with open(Guest.ProductsListName,"rb") as FilePtr:
 				ShowProducts = pickle.load(FilePtr)
 				FilePtr.close()
-				print("Products:")
+				print("Products:\n")
+				print("S[.] Product Name\t\tPrice\t\t\tQuantity")
 				for item in ShowProducts:
-					print(str(item) + ".", ShowProducts[item][0],"\t\t",
-						ShowProducts[item][1],"\t\t", ShowProducts[item][2])
+					print("",str(item) + ".", ShowProducts[item][0].ljust(20) + "\tRs.",
+						(ShowProducts[item][1]).ljust(20), ShowProducts[item][2])
 		else:
 			print("OOPS!!! No Products are Available!")
 
@@ -376,10 +414,19 @@ class Guest (Customer):
 		HighestId = sum(len(users) for users in UserDetail.values())
 		self.UserId = int(HighestId / 4) + 1
 		self.UserName = input("Enter Your Name: ")
+		if self.UserName.isdigit():
+			print("Invalid Input!")
+			return
 		self.UserAdd = input("Enter Your Address: ")
+		if self.UserAdd.isdigit():
+			print("Invalid Input!")
+			return
 		self.UserPhone = input("Enter Your Contact No: ")
+		if self.UserPhone.isdigit() == False:
+			print("Invalid Input!")
+			return
 		self.Password = input("Enter Your Password: ")
-		  
+
 		self.UserData =	str(self.UserName) + "," + \
 						str(self.UserAdd) + "," + str(self.UserPhone) + \
 						"," + str(self.Password)
@@ -399,6 +446,9 @@ class Login (Admin, Customer):
 		Customer.CustomerLogin = False
 		print("Login here: ")
 		self.UserId = input("Enter UserId: ")
+		if self.UserId.isdigit() == False:
+			print("Invalid User id!")
+			return
 		self.Password = input("Enter Password: ")
 
 		if(LoginAs == 1):
@@ -454,14 +504,14 @@ class operation:
 			userObject.ViewProducts()
 			while(1):
 				print(
-						"\n1. Add Into Cart" + space_count * space + \
+						"\n1. Add To Cart" + space_count * space + \
 						"2. View Cart" + space_count * space + \
 						"3. Empty Cart" + space_count * space + \
 						"4. Delete From Cart" + space_count * space + \
 						"5. Buy Products" + space_count * space + \
 						"6. View Products" + space_count * space + \
 						"7. Show All Trasections" + space_count * space + \
-						"8. Logout\nOperation: ", end = "", flush = True
+						"8. Logout\n[Enter the choice]: ", end = "", flush = True
 					)
 				op_task = input()
 				if(str(op_task) == "1"):
@@ -509,7 +559,10 @@ def main():
 			start = input("\nDo you want to login?[Yes/No/Exit]: ")
 
 		if(start == "Yes" or start == "yes"):
-			want_login = input("\n1. Admin Login\t2. User Login\nChoose Option: ")
+			want_login = input("\n1. Admin Login\t2. User Login\n[Enter Your Choice]: ")
+			if want_login.isdigit() == False:
+				print("Invalid Choice!")
+				continue
 			if(int(want_login) == 1):
 				adminObject = Login(1)
 				if(Admin.adminLogin == True):
@@ -524,15 +577,15 @@ def main():
 								"3. Delete Products"+ space_count * space + \
 								"4. View Products"+ space_count * space + \
 								"5. Confrim Delivery"+ space_count * space + \
-								"6. Logout\nOperation: ", end = "", flush = True
+								"6. Logout\n[Enter the choice]: ", end = "", flush = True
 							)
 						op_task = input()
 						if(str(op_task) == "1"):
 							adminObject.AddProducts()
 						elif(str(op_task) == "2"):
-							adminObject.ModifyProducts(input("Enter Product Id:")).replace(" ","")
+							adminObject.ModifyProducts(input("Enter Product Id: ").replace(" ",""))
 						elif(str(op_task) == "3"):
-							adminObject.DeleteProducts(input("Enter Product Id:")).replace(" ","")
+							adminObject.DeleteProducts(input("Enter Product Id: ").replace(" ",""))
 						elif(str(op_task) == "4"):
 							adminObject.ViewProducts()
 						elif(str(op_task) == "5"):
