@@ -106,7 +106,7 @@ class Admin (Cart):
 			print("Something went Wrong!")
 			return
 
-		if self.ProductId in ProductList:
+		if int(self.ProductId) in ProductsList:
 			print(	
 					"Product Name:",ProductsList[int(self.ProductId)][0],
 					"\nProduct Price:",ProductsList[int(self.ProductId)][1],
@@ -216,8 +216,8 @@ class Customer (Cart, Payment):
 			FilePtr.close()
 		else:
 			print("Something Went Wrong!")
-		HighestId = sum(len(trans) for trans in TransDetail.values())
-		self.TransId = int(HighestId / 4) + 1
+		# HighestId = sum(len(trans) for trans in TransDetail.values())
+		# self.TransId = int(HighestId / 4) + 1
 
 		if(len(self.Products) > 0):
 			self.ViewCart()
@@ -243,7 +243,7 @@ class Customer (Cart, Payment):
 			Customer.MakePayment(self)
 		elif(str(op_task) == "No" or str(op_task) == "no"):
 			self.ViewProducts()
-
+			return 
 		for item in self.Products:
 			TransDetail[item] = self.Products[item] #Fixed
 
@@ -261,16 +261,16 @@ class Customer (Cart, Payment):
 		self.CustId = self.CustomerId
 		self.CardType = input("Enter card Type: ")
 		if self.CardType.isdigit():
-				print("Invalid Input!")
-				return
+			print("Invalid Input!")
+			return
 		self.CardName = input("Enter Card Name: ")
 		if self.CardName.isdigit():
-				print("Invalid Input!")
-				return
+			print("Invalid Input!")
+			return
 		self.CardNo = input("Enter Card No.: ")
 		if self.CardNo.isdigit() == False:
-				print("Invalid Input!")
-				return
+			print("Invalid Input!")
+			return
 		print("Processing...")
 
 	def AddToCart(self, ProductId, Quantity):
@@ -311,6 +311,7 @@ class Customer (Cart, Payment):
 			self.NoOfProducts += 1
 			self.Total += int(Quantity) * int(ProductList[int(ProductId)][1])
 			print("Product", ProductId, "added into cart!")
+			# print(self.Products)
 		else:
 			print("Invalid Product Id!")
 
@@ -334,6 +335,7 @@ class Customer (Cart, Payment):
 			
 
 	def DeleteFromCart(self, cartId, Quantity):
+		TempCartId = cartId
 		if len(self.Products) > 0:
 			if os.path.exists(self.ProductFileName):
 				FilePtr = open(self.ProductFileName, "rb") 
@@ -343,15 +345,17 @@ class Customer (Cart, Payment):
 
 			if(len(self.Products) >= int(cartId)):
 				cartId = int(cartId) + int(HighestId / 4) -1
-				if(self.Products[cartId][3] == int(Quantity)):
+				if(int(self.Products[cartId][3]) == int(Quantity)):
 					self.NoOfProducts -= 1
-					self.Total -= int(Quantity) * self.Products[cartId][2]
+					self.Total -= int(Quantity) * int(self.Products[cartId][2])
 					del self.Products[cartId] 
+					print("Product", TempCartId, "removed!")
 
 				else:
 					self.Total -= int(Quantity) * int(self.Products[cartId][2])
 					self.Products[cartId][3] = int(self.Products[cartId][3]) - int(Quantity)
-				print("Product", cartId, "removed!")
+					print("Quantity of Product", TempCartId, "is reduced!")
+					print("Total Quantity of Product", TempCartId, "is:",int(self.Products[cartId][3]) - int(Quantity))
 			else:
 				print("Invalid Product Id!")
 		else:
@@ -370,7 +374,7 @@ class Customer (Cart, Payment):
 		index = 1
 		for item in TransDetail:
 			Total = 0
-			if TransDetail[item][0] == self.CustomerId:
+			if int(TransDetail[item][0]) == int(self.CustomerId):
 				Total += int(TransDetail[item][2]) * int(TransDetail[item][3])
 				print("Order No.:",index)
 				print(
@@ -379,7 +383,7 @@ class Customer (Cart, Payment):
 					"Cost: \t\t" + TransDetail[item][2]
 				)
 				index += 1
-			print("Total Amount Paid: \t", Total)				
+				print("Total Amount Paid: \t", Total)				
 
 class Guest (Customer):
 	GuestId = 0
@@ -521,6 +525,7 @@ class operation:
 						userObject.AddToCart(pid, Quantity)
 					else:
 						print("Invalid Input!")
+
 				elif(str(op_task) == "2"):
 					userObject.ViewCart()
 				elif(str(op_task) == "3"):
