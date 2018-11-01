@@ -1,6 +1,6 @@
 import pickle
 import os
-
+import getpass
 class Cart:
 	CartId = 0
 	NoOfProducts = 0
@@ -429,7 +429,11 @@ class Guest (Customer):
 		if self.UserPhone.isdigit() == False:
 			print("Invalid Input!")
 			return
-		self.Password = input("Enter Your Password: ")
+		self.Password = getpass.getpass('Enter Password: ')
+		ConfPassword = getpass.getpass('Enter Confirm Password: ')
+		if self.Password != ConfPassword:
+			print("Passwords do not match!")
+			return 0
 
 		self.UserData =	str(self.UserName) + "," + \
 						str(self.UserAdd) + "," + str(self.UserPhone) + \
@@ -441,7 +445,9 @@ class Guest (Customer):
 			FilePtr.close()
 			print("Registered Successfully!")
 			print("Your user Id is: " + str(self.UserId) + ". Keep save for future login.")
+		return 1
 
+		
 class Login (Admin, Customer):
 	UserFileName = "UserList.pickle"
 	def __init__(self, LoginAs):
@@ -452,8 +458,8 @@ class Login (Admin, Customer):
 		self.UserId = input("Enter UserId: ")
 		if self.UserId.isdigit() == False:
 			print("Invalid User id!")
-			return
-		self.Password = input("Enter Password: ")
+			return 0
+		self.Password = getpass.getpass('Enter Password: ')
 
 		if(LoginAs == 1):
 			if(str(self.UserId) == "1325" and str(self.Password) == "girdhari"):
@@ -621,10 +627,12 @@ def main():
 				op = operation()
 				op.CustomerOperation(CustomerObject)
 			else:
-				GuestObject.GetRegistered()
-				CustomerObject = Login(2)
-				op = operation()
-				op.CustomerOperation(CustomerObject)
+				ret = GuestObject.GetRegistered()
+				if ret:
+					CustomerObject = Login(2)
+					op = operation()
+					op.CustomerOperation(CustomerObject)
+
 		elif(start == "exit" or start == "Exit"):
 			print("Thank You and Welcome Again!")
 			exit(0)
