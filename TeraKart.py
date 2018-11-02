@@ -1,6 +1,8 @@
 import pickle
 import os
 import getpass
+import sys
+
 class Cart:
 	CartId = 0
 	NoOfProducts = 0
@@ -28,18 +30,41 @@ class Admin (Cart):
 		self.ProductPrice = None
 		self.ProductPieces = None
 
+	def ViewUsers(self):
+		if os.path.exists(Login.UserFileName):
+			FilePtr = open(Login.UserFileName, "rb") 
+			UserList = pickle.load(FilePtr)
+			FilePtr.close()
+		else:
+			print("Connection error: Database do not exist!")
+			return 0;
+		if len(UserList) > 0:
+			print("Total Users:",len(UserList))
+			print("S[.] User Name\t\t  Address\t\tMobile No.\t     Password")
+			for item in UserList:
+				print(
+						"",str(item) + ". ", UserList[item][0].ljust(20), \
+						(UserList[item][1]).ljust(21), UserList[item][2].ljust(20), \
+						UserList[item][3]
+					)
+		else:
+			print("OOPS!!! No Users are Registered!")
+
 	def ViewProducts(self):
 		if os.path.exists(Guest.ProductsListName):
 			with open(Guest.ProductsListName,"rb") as FilePtr:
 				ShowProducts = pickle.load(FilePtr)
 				FilePtr.close()
 				print("Products:\n")
-				print("S[.] Product Name\t\tPrice\t\t\tQuantity")
-				for item in ShowProducts:
-					print("",str(item) + ".", ShowProducts[item][0].ljust(20) + "\tRs.",
-						(ShowProducts[item][1]).ljust(20), ShowProducts[item][2])
+				if len(ShowProducts) <= 0:
+					print("OOPS!!! No Products are Available!")
+				else:
+					print("S[.] Product Name\t\tPrice\t\t\tQuantity")
+					for item in ShowProducts:
+						print("",str(item) + ".", ShowProducts[item][0].ljust(20) + "\tRs.",
+							(ShowProducts[item][1]).ljust(20), ShowProducts[item][2])
 		else:
-			print("OOPS!!! No Products are Available!")
+			print("Connection error: Database do not exist!")
 
 	def AddProducts(self):
 		if os.path.exists(Admin.ProductFileName):
@@ -93,7 +118,7 @@ class Admin (Cart):
 				FilePtr.close()
 				print("Delete Product",int(self.ProductId), "Successfully!")
 		else:
-			print("Something went Wrong!")
+			print("Connection error: Database do not exist!")
 
 
 	def ModifyProducts(self,ProductId):
@@ -103,7 +128,7 @@ class Admin (Cart):
 			ProductsList = pickle.load(FilePtr)
 			FilePtr.close()
 		else:
-			print("Something went Wrong!")
+			print("Connection error: Database do not exist!")
 			return
 
 		if int(self.ProductId) in ProductsList:
@@ -158,7 +183,7 @@ class Admin (Cart):
 			FilePtr.close()
 			
 		else:
-			print("Something Went Wrong!")
+			print("Connection error: Database do not exist!")
 
 		if os.path.exists(self.UserFileName):
 			FilePtr = open(self.UserFileName, "rb") 
@@ -166,7 +191,7 @@ class Admin (Cart):
 			FilePtr.close()
 			
 		else:
-			print("Something Went Wrong!")
+			print("Connection error: Database do not exist!")
 		size = sum(len(trans) for trans in TransDetail.values())
 		arr = [1] * size
 		
@@ -215,7 +240,7 @@ class Customer (Cart, Payment):
 			TransDetail = pickle.load(FilePtr)
 			FilePtr.close()
 		else:
-			print("Something Went Wrong!")
+			print("Connection error: Database do not exist!")
 		# HighestId = sum(len(trans) for trans in TransDetail.values())
 		# self.TransId = int(HighestId / 4) + 1
 
@@ -280,7 +305,7 @@ class Customer (Cart, Payment):
 				ProductList = pickle.load(FilePtr)
 				FilePtr.close()
 		else:
-			print("Something Went Wrong!")
+			print("Connection error: Database do not exist!")
 		if(int(ProductId) in ProductList):
 			ProductDetail =	str(Customer.CustomerId) + "," + \
 							ProductList[int(ProductId)][0] + "," + \
@@ -368,7 +393,7 @@ class Customer (Cart, Payment):
 			TransDetail = pickle.load(FilePtr)
 			FilePtr.close()
 		else:
-			print("Something Went Wrong!")
+			print("Connection error: Database do not exist!")
 
 		print("\nTransection Details: ")
 		index = 1
@@ -401,7 +426,7 @@ class Guest (Customer):
 				print("Products:\n")
 				print("S[.] Product Name\t\tPrice\t\t\tQuantity")
 				for item in ShowProducts:
-					print("",str(item) + ".", ShowProducts[item][0].ljust(20) + "\tRs.",
+					print("",str(item) + ". ", ShowProducts[item][0].ljust(20) + "\tRs.",
 						(ShowProducts[item][1]).ljust(20), ShowProducts[item][2])
 		else:
 			print("OOPS!!! No Products are Available!")
@@ -413,7 +438,7 @@ class Guest (Customer):
 			UserDetail = pickle.load(FilePtr)
 			FilePtr.close()
 		else:
-			print("Something Went Wrong!")
+			print("Connection error: Database do not exist!")
 
 		HighestId = sum(len(users) for users in UserDetail.values())
 		self.UserId = int(HighestId / 4) + 1
@@ -450,10 +475,19 @@ class Guest (Customer):
 		
 class Login (Admin, Customer):
 	UserFileName = "UserList.pickle"
-	def __init__(self, LoginAs):
+	def __init__(self):
 		CustomerPass = False
 		Admin.adminLogin = False
 		Customer.CustomerLogin = False
+
+	def __del__(self):
+		if(self.adminLogin == True or self.CustomerLogin == True):
+			print("Logout Successfully!")
+		self.CustomerPass = False
+		self.adminLogin = False
+		self.CustomerLogin = False
+
+	def UserLogin(self):
 		print("Login here: ")
 		self.UserId = input("Enter UserId: ")
 		if self.UserId.isdigit() == False:
@@ -461,184 +495,220 @@ class Login (Admin, Customer):
 			return 0
 		self.Password = getpass.getpass('Enter Password: ')
 
-		if(LoginAs == 1):
-			if(str(self.UserId) == "1325" and str(self.Password) == "girdhari"):
-				Admin.adminLogin = True
-				Login.SetScreen(0)
-			else:
-				print("Wrong Credential. Try Again!")
+		if os.path.exists(Login.UserFileName):
+			FilePtr = open(Login.UserFileName, "rb") 
+			UserList = pickle.load(FilePtr)
+			FilePtr.close()
 
-		if(LoginAs == 2):	
-			if os.path.exists(Login.UserFileName):
-				FilePtr = open(Login.UserFileName, "rb") 
-				UserList = pickle.load(FilePtr)
-				FilePtr.close()
+		if(int(self.UserId) in UserList):
+			self.CustomerPass = UserList[int(self.UserId)][-1]
+		else:
+			print("Invalid User Id!")
 
-			if(int(self.UserId) in UserList):
-				self.CustomerPass = UserList[int(self.UserId)][-1]
-			else:
-				print("Invalid User Id!")
+		if(self.Password == self.CustomerPass):
+			Customer.CustomerPass = True
+			Customer.CustomerLogin = True
+			Customer.CustomerId = self.UserId
+			Customer.CustomerName = UserList[int(self.UserId)][0]
+			setScreen = initClass()
+			setScreen.getSize(0)
+		else:
+			print("Invalid Password!")
 
-			if(self.Password == self.CustomerPass):
-				Customer.CustomerPass = True
-				Customer.CustomerLogin = True
-				Customer.CustomerId = self.UserId
-				Customer.CustomerName = UserList[int(self.UserId)][0]
-				Login.SetScreen(0)
-			else:
-				print("Invalid Password!")
+	def AdminLogin(self):
+		self.UserId = input("Enter UserId: ")
+		if self.UserId.isdigit() == False:
+			print("Invalid User id!")
+			return 0
+		self.Password = getpass.getpass('Enter Password: ')
 
-	def __del__(self):
-		if(self.adminLogin == True or self.CustomerLogin == True):
-			print("Logout Successfully!")
+		if(str(self.UserId) == "1325" and str(self.Password) == "girdhari"):
+			Admin.adminLogin = True
+			setScreen = initClass()
+			setScreen.getSize(0)
+		else:
+			print("Wrong Credential. Try Again!")
 
-	def SetScreen(flag):
-	    if(flag == 0):
+class initClass:
+	def __init__(self):
+		pass
+
+	def getSize(self,flag):
+		rows, cols = os.popen('stty size','r').read().split()
+		self.SetScreen(flag, rows, cols)
+
+	def print_there(self, rows, cols, text):
+		sys.stdout.write("\x1b7\x1b[%d;%df%s\x1b8" % (rows, cols, text))
+		sys.stdout.flush()
+
+	def SetScreen(self,flag, rows, cols):
+	    if not flag:
 	        print("\033[H\033[J", end = '', flush = True)
-	        print("\t\t\t\tWelcome to Terakart\t\t\t", end = "", flush = True)
-	    if(flag == 1 or flag == 0):
+	        self.print_there(1, (int(cols)/2)-10, "Welcome to Terakart")
+
+	    if flag == 1 or not flag:
 	        if(Admin.adminLogin == True):
-	        	print("Username: Admin")
+	        	self.print_there(1, int(cols)-15, "Username: Admin")
 	        if(Customer.CustomerLogin == True):
-	        	print("Username:",Customer.CustomerName)
+	        	UserName = "Username:" + Customer.CustomerName
+	        	self.print_there(1, int(cols)-len(UserName), UserName)
 
 class operation:
 	def __init__(self):
 		pass
 
-	def CustomerOperation(self,userObject):
+	def CustomerOperation(self, userObject):
 		space = ' '
 		space_count = 4
-		if(Customer.CustomerLogin == True):
-			print("Login Successfully!")
-			userObject.ViewProducts()
-			while(1):
-				print(
-						"\n1. Add To Cart" + space_count * space + \
-						"2. View Cart" + space_count * space + \
-						"3. Empty Cart" + space_count * space + \
-						"4. Delete From Cart" + space_count * space + \
-						"5. Buy Products" + space_count * space + \
-						"6. View Products" + space_count * space + \
-						"7. Show All Trasections" + space_count * space + \
-						"8. Logout\n[Enter the choice]: ", end = "", flush = True
-					)
-				op_task = input()
-				if(str(op_task) == "1"):
-					pid = input("Enter Product Id: ").replace(" ","")
-					Quantity = input("No of Piece: ").replace(" ","")
-					if pid.isdigit() and Quantity.isdigit():
-						userObject.AddToCart(pid, Quantity)
-					else:
-						print("Invalid Input!")
-
-				elif(str(op_task) == "2"):
-					userObject.ViewCart()
-				elif(str(op_task) == "3"):
-					userObject.EmptyCart()
-				elif(str(op_task) == "4"):
-					cid = input("Enter Product Cart Id: ").replace(" ","")
-					Quantity = input("No of Piece: ").replace(" ","")
-					if cid.isdigit() and Quantity.isdigit():
-						userObject.DeleteFromCart(cid, Quantity)
-					else:
-						print("Invalid Input!")
-					
-				elif(str(op_task) == "5"):
-					userObject.BuyProducts()
-				elif(str(op_task) == "6"):
-					userObject.ViewProducts()
-				elif(str(op_task) == "7"):
-					userObject.ShowTrasections()
-				elif(str(op_task) == "8"):
-					Login.SetScreen(2)
-					exit(0)
+		userObject.ViewProducts()
+		while(1):
+			print(
+					"\n=================="
+					"\nUser operations: |"
+					"\n=================="
+					"\n1. Add To Cart"
+					"\n2. View Cart" 
+					"\n3. Empty Cart"
+					"\n4. Delete From Cart"
+					"\n5. Buy Products" 
+					"\n6. View Products"
+					"\n7. View Trasections"
+					"\n8. Logout"
+					"\n\n[Enter the choice]: ", end = "", flush = True
+				)
+			op_task = input()
+			if(str(op_task) == "1"):
+				pid = input("Enter Product Id: ").replace(" ","")
+				Quantity = input("No of Piece: ").replace(" ","")
+				if pid.isdigit() and Quantity.isdigit():
+					userObject.AddToCart(pid, Quantity)
 				else:
 					print("Invalid Input!")
-					continue
-		else:
-			print("Try Again!")
-			Login.SetScreen(1)
+
+			elif(str(op_task) == "2"):
+				userObject.ViewCart()
+			elif(str(op_task) == "3"):
+				userObject.EmptyCart()
+			elif(str(op_task) == "4"):
+				cid = input("Enter Product Cart Id: ").replace(" ","")
+				Quantity = input("No of Piece: ").replace(" ","")
+				if cid.isdigit() and Quantity.isdigit():
+					userObject.DeleteFromCart(cid, Quantity)
+				else:
+					print("Invalid Input!")
+				
+			elif(str(op_task) == "5"):
+				userObject.BuyProducts()
+			elif(str(op_task) == "6"):
+				userObject.ViewProducts()
+			elif(str(op_task) == "7"):
+				userObject.ShowTrasections()
+			elif(str(op_task) == "8"):
+				setScreen = initClass()
+				setScreen.getSize(2)
+				break;
+			else:
+				print("Invalid Input!")
+
+	def AdminOperation(self, adminObject):
+		while(1):
+			print(	
+					"\n=================="
+					"\nAdmin operations:|"
+					"\n=================="
+					"\n1. Add Products" 
+					"\n2. Modify Products"
+					"\n3. Delete Products"
+					"\n4. View Products"
+					"\n5. Confrim Delivery"
+					"\n6. View User List"
+					"\n7. Logout"
+					"\n\n[Enter the choice]: ", end = "", flush = True
+				)
+			op_task = input()
+			if(str(op_task) == "1"):
+				adminObject.AddProducts()
+			elif(str(op_task) == "2"):
+				adminObject.ModifyProducts(input("Enter Product Id: ").replace(" ",""))
+			elif(str(op_task) == "3"):
+				adminObject.DeleteProducts(input("Enter Product Id: ").replace(" ",""))
+			elif(str(op_task) == "4"):
+				adminObject.ViewProducts()
+			elif(str(op_task) == "5"):
+				adminObject.ConfirmDelivery()
+			elif(str(op_task) == "6"):
+				adminObject.ViewUsers()
+			elif(str(op_task) == "7"):
+				setScreen = initClass()
+				setScreen.getSize(2)
+				break;
+			else:
+				print("Invalid Input!")
 
 def main():
-	Login.SetScreen(0)
+	setScreen = initClass()
+	setScreen.getSize(0)
 	start = None
 	while(1):
-		if(Admin.adminLogin == True or Customer.CustomerLogin == True):
-			pass
-		else:
-			start = input("\nDo you want to login?[Yes/No/Exit]: ")
-
-		if(start == "Yes" or start == "yes"):
-			want_login = input("\n1. Admin Login\t2. User Login\n[Enter Your Choice]: ")
-			if want_login.isdigit() == False:
+		if not Admin.adminLogin or not Customer.CustomerLogin:
+			start = input("\n1. Admin Login\n2. User Login\n3. Guest\n4. Exit\n[Enter Your Choice]: ")
+			if not start.isdigit():
 				print("Invalid Choice!")
-				continue
-			if(int(want_login) == 1):
-				adminObject = Login(1)
+				
+			elif(int(start) == 1):
+				adminObject = Login()
+				adminObject.AdminLogin()
 				if(Admin.adminLogin == True):
-					print("Login Successfully!")
-					adminObject.ViewProducts()
-					while(1):
-						space = ' '
-						space_count = 4
-						print(	
-								"\n1. Add Products" + space_count * space + \
-								"2. Modify Products"+ space_count * space + \
-								"3. Delete Products"+ space_count * space + \
-								"4. View Products"+ space_count * space + \
-								"5. Confrim Delivery"+ space_count * space + \
-								"6. Logout\n[Enter the choice]: ", end = "", flush = True
-							)
-						op_task = input()
-						if(str(op_task) == "1"):
-							adminObject.AddProducts()
-						elif(str(op_task) == "2"):
-							adminObject.ModifyProducts(input("Enter Product Id: ").replace(" ",""))
-						elif(str(op_task) == "3"):
-							adminObject.DeleteProducts(input("Enter Product Id: ").replace(" ",""))
-						elif(str(op_task) == "4"):
-							adminObject.ViewProducts()
-						elif(str(op_task) == "5"):
-							adminObject.ConfirmDelivery()
-						elif(str(op_task) == "6"):
-							Login.SetScreen(2)
-							exit(0)
-						else:
-							print("Invalid Input!")
-				else:
-					print("Try Again!")
-					Login.SetScreen(1)
-					continue
-
-			elif(int(want_login) == 2):
-				userObject = Login(2)
-				op = operation()
-				op.CustomerOperation(userObject)
-				continue
-
-		elif(start == "No" or start == "no"):
-			GuestObject = Guest()
-			print("\nYou are entered as Guest!")
-			GuestObject.ViewProducts()
-			is_user = input("\nYou are already user?[Yes/No]: ")
-			if(is_user == "Yes" or is_user == "yes"):
-				CustomerObject = Login(2)
-				op = operation()
-				op.CustomerOperation(CustomerObject)
-			else:
-				ret = GuestObject.GetRegistered()
-				if ret:
-					CustomerObject = Login(2)
+					print("\nLogin Successfully!")
 					op = operation()
-					op.CustomerOperation(CustomerObject)
+					op.AdminOperation(adminObject)
+					adminObject.__del__()
+				else:
+					setScreen = initClass()
+					setScreen.getSize(1)
 
-		elif(start == "exit" or start == "Exit"):
-			print("Thank You and Welcome Again!")
-			exit(0)
-		else:
-			print("Invalid Input!")
-			continue
+			elif(int(start) == 2):
+				userObject = Login()
+				userObject.UserLogin()
+				if(Customer.CustomerLogin == True):
+					print("\nLogin Successfully!")
+					op = operation()
+					op.CustomerOperation(userObject)
+					userObject.__del__()
+				else:
+					setScreen = initClass()
+					setScreen.getSize(1)		
+
+			elif(int(start) == 3):
+				GuestObject = Guest()
+				print("\nYou are entered as Guest!")
+				GuestObject.ViewProducts()
+				is_user = input("\nYou are already user?[Yes/No]: ")
+				if(is_user == "Yes" or is_user == "yes"):
+					CustomerObject = Login()
+					CustomerObject.UserLogin()
+					if(Customer.CustomerLogin == True):
+						print("\nLogin Successfully!")
+						op = operation()
+						op.CustomerOperation(CustomerObject)
+						CustomerObject.__del__()
+				else:
+					ret = GuestObject.GetRegistered()
+					if ret:
+						print()
+						CustomerObject = Login()
+						CustomerObject.UserLogin()
+						if(Customer.CustomerLogin == True):
+							print("\nLogin Successfully!")
+							op = operation()
+							op.CustomerOperation(CustomerObject)
+							CustomerObject.__del__()
+
+			elif(int(start) == 4):
+				print("Thank You and Welcome Again!")
+				exit(0)
+			else:
+				print("Invalid Input!")
 
 if __name__ == '__main__':
     main() 
